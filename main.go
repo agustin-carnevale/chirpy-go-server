@@ -28,13 +28,24 @@ func readinessHandler(w http.ResponseWriter, req *http.Request) {
 
 func (cfg *apiConfig) hitsCountHandler(w http.ResponseWriter, req *http.Request) {
 	// set Header
-	w.Header().Add("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Add("Content-Type", "text/html")
 
 	//Status code
 	w.WriteHeader(http.StatusOK)
 
 	// Write the response body
-	text := fmt.Sprintf("Hits: %d", cfg.fileserverHits.Load())
+	// text := fmt.Sprintf("Hits: %d", cfg.fileserverHits.Load())
+
+	// HTML template with dynamic visit count
+	html := `<!DOCTYPE html>
+  <html>
+    <body>
+      <h1>Welcome, Chirpy Admin</h1>
+      <p>Chirpy has been visited %d times!</p>
+    </body>
+  </html>`
+
+	text := fmt.Sprintf(html, cfg.fileserverHits.Load())
 	w.Write([]byte(text))
 }
 
@@ -62,12 +73,17 @@ func main() {
 
 	// Route Handlers
 	mux := http.NewServeMux()
+
 	// File Server
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
 
-	mux.HandleFunc("GET /healthz", readinessHandler)
-	mux.HandleFunc("GET /metrics", apiCfg.hitsCountHandler)
-	mux.HandleFunc("POST /reset", apiCfg.hitsResetHandler)
+	// API Handlers
+	mux.HandleFunc("GET /api/healthz", readinessHandler)
+	mux.HandleFunc("POST /api/validate_chirp", validateChirpHandler)
+
+	// Admin  Handlers
+	mux.HandleFunc("GET /admin/metrics", apiCfg.hitsCountHandler)
+	mux.HandleFunc("POST /admin/reset", apiCfg.hitsResetHandler)
 
 	server := http.Server{
 		Addr:    ":" + port,
