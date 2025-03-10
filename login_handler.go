@@ -5,10 +5,9 @@ import (
 	"net/http"
 
 	"github.com/agustin-carnevale/chirpy-go-server/internal/auth"
-	"github.com/agustin-carnevale/chirpy-go-server/internal/database"
 )
 
-func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) loginHandler(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -22,23 +21,20 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	hashedPasswaord, err := auth.HashPassword(params.Password)
+	user, err := cfg.dbQueries.GetUserByEmail(r.Context(), params.Email)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Error processing password", err)
+		respondWithError(w, http.StatusUnauthorized, "Login incorrect", err)
 		return
 	}
 
-	user, err := cfg.dbQueries.CreateUser(r.Context(), database.CreateUserParams{
-		Email:          params.Email,
-		HashedPassword: hashedPasswaord,
-	})
+	err = auth.CheckPasswordHash(user.HashedPassword, params.Password)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create user", err)
+		respondWithError(w, http.StatusUnauthorized, "Login incorrect", err)
 		return
 	}
 
 	// Mapping from database.User to main User so I can customize json:keys
-	respondWithJSON(w, http.StatusCreated, User{
+	respondWithJSON(w, http.StatusOK, User{
 		ID:        user.ID,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,

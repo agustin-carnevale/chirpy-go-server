@@ -45,6 +45,7 @@ func main() {
 
 	// Users
 	mux.HandleFunc("POST /api/users", apiCfg.createUserHandler)
+	mux.HandleFunc("POST /api/login", apiCfg.loginHandler)
 
 	// Chirps
 	// mux.HandleFunc("POST /api/validate_chirp", validateChirpHandler)
