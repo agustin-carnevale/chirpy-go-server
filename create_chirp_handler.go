@@ -28,7 +28,7 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 	// Validate user/jwt
 	tokenString, err := auth.GetBearerToken(r.Header)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Invalid Authorization", err)
+		respondWithError(w, http.StatusUnauthorized, "Invalid Authorization", err)
 		return
 	}
 	userID, err := auth.ValidateJWT(tokenString, cfg.jwtSecret)
