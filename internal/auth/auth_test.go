@@ -2,6 +2,9 @@ package auth
 
 import (
 	"testing"
+	"time"
+
+	"github.com/google/uuid"
 )
 
 func TestCheckPasswordHash(t *testing.T) {
@@ -54,6 +57,49 @@ func TestCheckPasswordHash(t *testing.T) {
 			err := CheckPasswordHash(tt.password, tt.hash)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("CheckPasswordHash() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestValidateJWT ensures that token validation works correctly
+func TestValidateJWT(t *testing.T) {
+	userID := uuid.New()
+	tokenSecret := "supersecretkey"
+	expiresIn := time.Minute * 15
+
+	// Generate a valid token
+	token, err := MakeJWT(userID, tokenSecret, expiresIn)
+	if err != nil {
+		t.Fatalf("Failed to create JWT: %v", err)
+	}
+
+	// Generate a expired token
+	expiredToken, err := MakeJWT(userID, tokenSecret, -time.Second)
+	if err != nil {
+		t.Fatalf("Failed to create JWT: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		tokenString string
+		tokenSecret string
+		expectErr   bool
+	}{
+		{"Valid token", token, tokenSecret, false},
+		{"Invalid token secret", token, "wrongsecret", true},
+		{"Malformed token", "invalid.token.string", tokenSecret, true},
+		{"Token already expired", expiredToken, tokenSecret, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parsedUserID, err := ValidateJWT(tt.tokenString, tt.tokenSecret)
+			if (err != nil) != tt.expectErr {
+				t.Errorf("ValidateJWT() error = %v, expectErr %v", err, tt.expectErr)
+			}
+			if !tt.expectErr && parsedUserID != userID {
+				t.Errorf("Expected user ID %v, got %v", userID, parsedUserID)
 			}
 		})
 	}
