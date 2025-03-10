@@ -15,9 +15,10 @@ import (
 func main() {
 	godotenv.Load()
 	platform := os.Getenv("PLATFORM")
+	jwtSecret := os.Getenv("JWT_SECRET")
+	dbURL := os.Getenv("DB_URL")
 
 	// Connect to DB
-	dbURL := os.Getenv("DB_URL")
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		fmt.Println("Error connecting to database.")
@@ -30,6 +31,7 @@ func main() {
 		fileserverHits: atomic.Int32{},
 		dbQueries:      dbQueries,
 		platform:       platform,
+		jwtSecret:      jwtSecret,
 	}
 
 	// Route Handlers
