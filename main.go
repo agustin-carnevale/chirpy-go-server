@@ -16,6 +16,7 @@ func main() {
 	godotenv.Load()
 	platform := os.Getenv("PLATFORM")
 	jwtSecret := os.Getenv("JWT_SECRET")
+	polkaAPIKey := os.Getenv("POLKA_KEY")
 	dbURL := os.Getenv("DB_URL")
 
 	// Connect to DB
@@ -32,6 +33,7 @@ func main() {
 		dbQueries:      dbQueries,
 		platform:       platform,
 		jwtSecret:      jwtSecret,
+		polkaAPIKey:    polkaAPIKey,
 	}
 
 	// Route Handlers
@@ -64,6 +66,9 @@ func main() {
 	// Admin  Handlers
 	mux.HandleFunc("GET /admin/metrics", apiCfg.hitsCountHandler)
 	mux.HandleFunc("POST /admin/reset", apiCfg.resetHandler)
+
+	// Webhooks
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.upgradeUserHandler)
 
 	server := http.Server{
 		Addr:    ":" + port,
