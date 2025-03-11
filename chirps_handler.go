@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
+	"sort"
 
 	"github.com/agustin-carnevale/chirpy-go-server/internal/auth"
 	"github.com/agustin-carnevale/chirpy-go-server/internal/database"
@@ -108,6 +109,7 @@ func (cfg *apiConfig) getChirpHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *apiConfig) getChirpsHandler(w http.ResponseWriter, r *http.Request) {
+	sortParam := r.URL.Query().Get("sort")
 	authorId := r.URL.Query().Get("author_id")
 	// authorId contains the value of the author_id query parameter
 	// if it exists, or an empty string if it doesn't
@@ -126,6 +128,10 @@ func (cfg *apiConfig) getChirpsHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		if sortParam == "desc" {
+			sortChirpsAscDesc(chirps, false)
+		}
+
 		respondWithJSON(w, http.StatusOK, databaseChirpToChrip(chirps))
 		return
 	}
@@ -135,6 +141,10 @@ func (cfg *apiConfig) getChirpsHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps from DB.", err)
 		return
+	}
+
+	if sortParam == "desc" {
+		sortChirpsAscDesc(chirps, false)
 	}
 
 	respondWithJSON(w, http.StatusOK, databaseChirpToChrip(chirps))
@@ -196,4 +206,17 @@ func (cfg *apiConfig) deleteChirpHandler(w http.ResponseWriter, r *http.Request)
 
 	// return status code 204
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func sortChirpsAscDesc(chirps []database.Chirp, ascending bool) {
+	if ascending {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+		})
+	} else {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+		})
+	}
+
 }
